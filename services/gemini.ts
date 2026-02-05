@@ -47,7 +47,7 @@ export async function analyzeImageStyle(base64Image: string): Promise<ImageAnaly
         }
       });
 
-      const data = JSON.parse(response.text() || "{}"); // Handle potential empty response
+      const data = JSON.parse(response.text || "{}"); // Handle potential empty response
       
       if (!data.styleName) throw new Error("Invalid response structure");
 

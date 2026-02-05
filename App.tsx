@@ -189,7 +189,8 @@ const App: React.FC = () => {
     // Process Graded Result
     const adjusted = applyColorAdjustments(baseTransferred.pixels, deferredAdjustments);
     canvas.width = baseTransferred.width; canvas.height = baseTransferred.height;
-    ctx.putImageData(new ImageData(adjusted, canvas.width, canvas.height), 0, 0);
+    // Cast to any to satisfy TS ImageDataArray typing in DOM lib
+    ctx.putImageData(new ImageData(adjusted as any, canvas.width, canvas.height), 0, 0);
     setResultUrl(canvas.toDataURL('image/jpeg', 0.90)); // Slightly lower quality for faster previews
 
     // Process HALD LUT
@@ -197,7 +198,7 @@ const App: React.FC = () => {
     const bLut = transferColorAdvanced(nLut, baseTransferred.rStats, { shadows: { mean: [15,0,0], std: [10,10,10] }, midtones: { mean: [50,0,0], std: [15,15,15] }, highlights: { mean: [85,0,0], std: [10,10,10] }, globalMeanL: 50 });
     const fLut = applyColorAdjustments(bLut, deferredAdjustments);
     canvas.width = 512; canvas.height = 512;
-    ctx.putImageData(new ImageData(fLut, 512, 512), 0, 0);
+    ctx.putImageData(new ImageData(fLut as any, 512, 512), 0, 0);
     setLutUrl(canvas.toDataURL('image/png'));
   }, [baseTransferred, deferredAdjustments]);
 
