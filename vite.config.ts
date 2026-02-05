@@ -9,7 +9,7 @@ export default defineConfig({
     host: true
   },
   define: {
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
+    // 'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
   },
   build: {
     outDir: 'dist',
