@@ -6,7 +6,8 @@
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "typecheck": "tsc",
     "preview": "vite preview",
     "electron:dev": "NODE_ENV=development electron .",
     "electron:build": "npm run build && electron-builder"
