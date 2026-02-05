@@ -123,7 +123,7 @@ const App: React.FC = () => {
     setState(p => ({ ...p, isProcessing: true }));
     try {
       const rI = new Image(); rI.src = refImg; await new Promise(res => rI.onload = res);
-      const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d')!;
+      const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
       canvas.width = rI.width; canvas.height = rI.height; ctx.drawImage(rI, 0, 0);
       const rData = ctx.getImageData(0, 0, rI.width, rI.height).data;
       const rStats = getAdvancedStats(rData);
