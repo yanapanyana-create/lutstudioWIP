@@ -83,48 +83,6 @@ const AdjustmentSlider: React.FC<{ label: string; value: number; min: number; ma
   );
 };
 
-const CurvesEditor: React.FC<{ curves: CurvesState; onChange: (curves: CurvesState) => void; }> = ({ curves, onChange }) => {
-  const [activeChannel, setActiveChannel] = useState<keyof CurvesState>('master');
-  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
-  const containerRef = useRef<SVGSVGElement>(null);
-  const points = curves[activeChannel];
-
-  const handleMouseDown = (idx: number) => { if (idx !== 0 && idx !== points.length - 1) setDraggingIdx(idx); };
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (draggingIdx === null || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const y = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
-    const newPoints = [...points];
-    const prevX = newPoints[draggingIdx - 1].x;
-    const nextX = newPoints[draggingIdx + 1].x;
-    newPoints[draggingIdx] = { x: Math.max(prevX + 0.01, Math.min(nextX - 0.01, x)), y };
-    onChange({ ...curves, [activeChannel]: newPoints });
-  };
-  const pathData = useMemo(() => points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x * 200} ${(1 - p.y) * 200}`).join(' '), [points]);
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1">
-          {(['master', 'red', 'green', 'blue'] as const).map((ch) => (
-            <button key={ch} onClick={() => setActiveChannel(ch)} className={`px-2 py-1 rounded text-[9px] font-bold uppercase transition-colors ${activeChannel === ch ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`}>
-              {ch === 'master' ? 'RGB' : ch}
-            </button>
-          ))}
-        </div>
-        <button onClick={() => onChange({ ...curves, [activeChannel]: [{x:0,y:0}, {x:0.25,y:0.25}, {x:0.5,y:0.5}, {x:0.75,y:0.75}, {x:1,y:1}] })} className="text-[9px] text-indigo-400 hover:text-indigo-300 font-bold uppercase">Reset</button>
-      </div>
-      <div className="bg-slate-950 rounded-xl border border-slate-800 p-2 relative h-40 shadow-inner overflow-hidden">
-        <svg ref={containerRef} viewBox="0 0 200 200" className="w-full h-full cursor-crosshair" onMouseMove={handleMouseMove} onMouseUp={() => setDraggingIdx(null)} onMouseLeave={() => setDraggingIdx(null)}>
-          <path d={pathData} fill="none" stroke={activeChannel === 'master' ? '#6366f1' : activeChannel === 'red' ? '#ef4444' : activeChannel === 'green' ? '#22c55e' : '#3b82f6'} strokeWidth="2" />
-          {points.map((p, i) => <circle key={i} cx={p.x * 200} cy={(1 - p.y) * 200} r={i === draggingIdx ? "6" : "3"} fill="#f8fafc" onMouseDown={() => handleMouseDown(i)} className="transition-all" />)}
-        </svg>
-      </div>
-    </div>
-  );
-};
-
 const AssetInput: React.FC<{ title: string; src: string | null; onFile: (f: File) => void; }> = ({ title, src, onFile }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -277,14 +235,141 @@ const App: React.FC = () => {
               <button onClick={() => setAdjustments(DEFAULT_ADJUSTMENTS)} className="text-[9px] text-slate-500 hover:text-white uppercase transition-colors font-bold">Clear</button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-6">
-              <CurvesEditor curves={adjustments.curves} onChange={(c) => setAdjustments(p => ({...p, curves: c}))} />
-              <div className="space-y-4 pt-2">
+              <div className="space-y-4 pt-1">
+                <h3 className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Global Tone</h3>
                 <AdjustmentSlider label="Exposure" value={adjustments.brightness} min={-100} max={100} onChange={v => setAdjustments(p=>({...p, brightness:v}))} reset={()=>setAdjustments(p=>({...p, brightness:0}))} />
                 <AdjustmentSlider label="Contrast" value={adjustments.contrast} min={-100} max={100} onChange={v => setAdjustments(p=>({...p, contrast:v}))} reset={()=>setAdjustments(p=>({...p, contrast:0}))} />
                 <AdjustmentSlider label="Saturation" value={adjustments.saturation} min={-100} max={100} onChange={v => setAdjustments(p=>({...p, saturation:v}))} reset={()=>setAdjustments(p=>({...p, saturation:0}))} />
                 <div className="grid grid-cols-2 gap-4">
                   <AdjustmentSlider label="Temp" value={adjustments.temp} min={-100} max={100} onChange={v => setAdjustments(p=>({...p, temp:v}))} reset={()=>setAdjustments(p=>({...p, temp:0}))} />
                   <AdjustmentSlider label="Tint" value={adjustments.tint} min={-100} max={100} onChange={v => setAdjustments(p=>({...p, tint:v}))} reset={()=>setAdjustments(p=>({...p, tint:0}))} />
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-slate-800/60">
+                <h3 className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Skin Tone</h3>
+                <AdjustmentSlider
+                  label="Skin Hue"
+                  value={adjustments.skin.hue}
+                  min={-60}
+                  max={60}
+                  onChange={v => setAdjustments(p => ({ ...p, skin: { ...p.skin, hue: v } }))}
+                  reset={() => setAdjustments(p => ({ ...p, skin: { ...p.skin, hue: 0 } }))}
+                />
+                <AdjustmentSlider
+                  label="Skin Saturation"
+                  value={adjustments.skin.saturation}
+                  min={-50}
+                  max={50}
+                  onChange={v => setAdjustments(p => ({ ...p, skin: { ...p.skin, saturation: v } }))}
+                  reset={() => setAdjustments(p => ({ ...p, skin: { ...p.skin, saturation: 0 } }))}
+                />
+                <AdjustmentSlider
+                  label="Skin Lightness"
+                  value={adjustments.skin.lightness}
+                  min={-50}
+                  max={50}
+                  onChange={v => setAdjustments(p => ({ ...p, skin: { ...p.skin, lightness: v } }))}
+                  reset={() => setAdjustments(p => ({ ...p, skin: { ...p.skin, lightness: 0 } }))}
+                />
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-slate-800/60">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Color Ranges</h3>
+                  <button
+                    className="text-[9px] text-slate-500 hover:text-white uppercase transition-colors font-bold"
+                    onClick={() => setAdjustments(p => ({ ...p, hsl: DEFAULT_HSL }))}
+                  >
+                    Reset HSL
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {(['reds','oranges','yellows','greens','cyans','blues','purples','magentas'] as const).map((key) => {
+                    const label = key.charAt(0).toUpperCase() + key.slice(1);
+                    const hsl = adjustments.hsl[key];
+                    return (
+                      <div key={key} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">{label}</span>
+                          <button
+                            className="text-[9px] text-slate-500 hover:text-white transition-colors"
+                            onClick={() => setAdjustments(p => ({
+                              ...p,
+                              hsl: {
+                                ...p.hsl,
+                                [key]: { ...DEFAULT_HSL_ITEM },
+                              },
+                            }))}
+                          >
+                            ↺
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <AdjustmentSlider
+                            label="Hue"
+                            value={hsl.hue}
+                            min={-60}
+                            max={60}
+                            onChange={v => setAdjustments(p => ({
+                              ...p,
+                              hsl: {
+                                ...p.hsl,
+                                [key]: { ...p.hsl[key], hue: v },
+                              },
+                            }))}
+                            reset={() => setAdjustments(p => ({
+                              ...p,
+                              hsl: {
+                                ...p.hsl,
+                                [key]: { ...p.hsl[key], hue: 0 },
+                              },
+                            }))}
+                          />
+                          <AdjustmentSlider
+                            label="Sat"
+                            value={hsl.saturation}
+                            min={-50}
+                            max={50}
+                            onChange={v => setAdjustments(p => ({
+                              ...p,
+                              hsl: {
+                                ...p.hsl,
+                                [key]: { ...p.hsl[key], saturation: v },
+                              },
+                            }))}
+                            reset={() => setAdjustments(p => ({
+                              ...p,
+                              hsl: {
+                                ...p.hsl,
+                                [key]: { ...p.hsl[key], saturation: 0 },
+                              },
+                            }))}
+                          />
+                          <AdjustmentSlider
+                            label="Tone"
+                            value={hsl.lightness}
+                            min={-50}
+                            max={50}
+                            onChange={v => setAdjustments(p => ({
+                              ...p,
+                              hsl: {
+                                ...p.hsl,
+                                [key]: { ...p.hsl[key], lightness: v },
+                              },
+                            }))}
+                            reset={() => setAdjustments(p => ({
+                              ...p,
+                              hsl: {
+                                ...p.hsl,
+                                [key]: { ...p.hsl[key], lightness: 0 },
+                              },
+                            }))}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
