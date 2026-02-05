@@ -1,0 +1,5 @@
+{
+  "name": "LutStudio-WIP",
+  "description": "A professional-grade web utility to extract color grading (LUTs) from reference images and apply them to target images using LAB color space transfer and AI-powered style analysis.",
+  "requestFramePermissions": []
+}
