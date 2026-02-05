@@ -22,28 +22,66 @@ const Header: React.FC = () => (
   </header>
 );
 
-const AdjustmentSlider: React.FC<{ label: string; value: number; min: number; max: number; onChange: (val: number) => void; reset: () => void; }> = ({ label, value, min, max, onChange, reset }) => (
-  <div className="flex flex-col gap-1.5 animate-fade-in">
-    <div className="flex items-center justify-between px-1">
-      <label className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">{label}</label>
-      <div className="flex items-center gap-2">
-        <input 
-          type="number" 
-          value={value} 
-          min={min} 
-          max={max}
-          onChange={(e) => {
-            const val = parseInt(e.target.value);
-            if (!isNaN(val)) onChange(Math.max(min, Math.min(max, val)));
-          }}
-          className="w-12 bg-slate-800 border border-slate-700 rounded text-[10px] font-mono text-indigo-400 text-center focus:outline-none focus:border-indigo-500 transition-colors"
-        />
-        <button onClick={reset} className="text-[9px] text-slate-600 hover:text-white transition-colors">↺</button>
+const AdjustmentSlider: React.FC<{ label: string; value: number; min: number; max: number; onChange: (val: number) => void; reset: () => void; }> = ({ label, value, min, max, onChange, reset }) => {
+  const [textValue, setTextValue] = useState<string>(String(value));
+
+  // Keep the text input in sync when the value changes from outside
+  useEffect(() => {
+    setTextValue(String(value));
+  }, [value]);
+
+  const commitValue = (raw: string) => {
+    // Allow temporary states like empty string or "-" while typing
+    if (raw === '' || raw === '-') {
+      setTextValue(String(value));
+      return;
+    }
+
+    const num = Number(raw);
+    if (Number.isNaN(num)) {
+      setTextValue(String(value));
+      return;
+    }
+
+    const clamped = Math.max(min, Math.min(max, num));
+    onChange(clamped);
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5 animate-fade-in">
+      <div className="flex items-center justify-between px-1">
+        <label className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">{label}</label>
+        <div className="flex items-center gap-2">
+          <input 
+            type="number" 
+            step={1}
+            value={textValue}
+            min={min} 
+            max={max}
+            onChange={(e) => setTextValue(e.target.value)}
+            onBlur={(e) => commitValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                commitValue((e.target as HTMLInputElement).value);
+              }
+            }}
+            className="w-12 bg-slate-800 border border-slate-700 rounded text-[10px] font-mono text-indigo-400 text-center focus:outline-none focus:border-indigo-500 transition-colors"
+          />
+          <button onClick={reset} className="text-[9px] text-slate-600 hover:text-white transition-colors">↺</button>
+        </div>
       </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full"
+      />
     </div>
-    <input type="range" min={min} max={max} value={value} onChange={(e) => onChange(parseInt(e.target.value))} className="w-full" />
-  </div>
-);
+  );
+};
 
 const CurvesEditor: React.FC<{ curves: CurvesState; onChange: (curves: CurvesState) => void; }> = ({ curves, onChange }) => {
   const [activeChannel, setActiveChannel] = useState<keyof CurvesState>('master');
