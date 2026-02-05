@@ -2,11 +2,35 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ImageAnalysis } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Lazily create the Gemini client so that missing API keys
+// don't crash the whole app on import (important for Vercel).
+let aiClient: GoogleGenAI | null = null;
+
+function getGeminiClient(): GoogleGenAI | null {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    // No key configured in this environment (e.g. Vercel)
+    return null;
+  }
+  if (!aiClient) {
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
+}
+
 export async function analyzeImageStyle(base64Image: string): Promise<ImageAnalysis> {
+  const ai = getGeminiClient();
+  if (!ai) {
+    // Fallback when no API key is configured: return a neutral style description
+    return {
+      styleName: "Custom Look",
+      description: "AI style analysis is unavailable because no Gemini API key is configured for this deployment.",
+      palette: ["#64748B", "#0F172A", "#1E293B", "#334155", "#020617"],
+    };
+  }
+
   const prompt = `Analyze the color grading and visual style of this image. Provide:
   1. A creative style name (MUST be exactly 2 words, e.g., "Muted Nordic", "Neon Cyberpunk").
   2. A brief 2-sentence description of the color profile (highlights, shadows, saturation).
